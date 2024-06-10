@@ -2,8 +2,6 @@
 
 import json
 
-from obtain_token import obtain_session
-
 headers = {
     "Accept": "application/json",
     "User-Agent": "GPO Bound Query",

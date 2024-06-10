@@ -1,14 +1,15 @@
 # This file generates a valid google session using credentials and a token
 
 import warnings
+
 import click
-from google.oauth2 import service_account
 import google.auth
 import google.auth.transport.requests
-from google.auth.transport.requests import AuthorizedSession
 from google.auth import compute_engine
-from google.auth import impersonated_credentials, jwt
+from google.auth import impersonated_credentials
 from google.auth.transport import requests  # type: ignore
+from google.auth.transport.requests import AuthorizedSession
+from google.oauth2 import service_account
 
 # Sets the tokens audience
 target_audience = click.prompt(

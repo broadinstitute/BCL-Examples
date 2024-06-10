@@ -1,8 +1,27 @@
 # Create and order
 
-from obtain_token import obtain_session
+from common.obtain_token import obtain_session
 
 # Example CWGS Order to fill in
+
+
+def place_gpo_order(email: str, payload):
+    session = obtain_session()
+    headers = {
+        "Actor-Email": email,
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "User-Agent": "bcl-example",
+    }
+    res = session.post(
+        "https://gpo-staging.broadinstitute.org/api/order",
+        json=payload,
+        headers=headers,
+    )
+    res.raise_for_status()
+    return res
+
+
 cwgs_payload = {
     "project_key": "SDPR-STAGING-X0000X",
     "clinician": {
@@ -36,18 +55,7 @@ cwgs_payload = {
     "number_of_samples": "1",
 }
 
-session = obtain_session()
+
 submitter_email = "FILL_IN"
-headers = {
-    "Actor-Email": submitter_email,
-    "Content-Type": "application/json",
-    "Accept": "application/json",
-    "User-Agent": "bcl-example",
-}
-res = session.post(
-    "https://gpo-staging.broadinstitute.org/api/order",
-    json=cwgs_payload,
-    headers=headers,
-)
-res.raise_for_status()
-print(res.json())
+response = place_gpo_order(submitter_email, cwgs_payload)
+print(response.json())

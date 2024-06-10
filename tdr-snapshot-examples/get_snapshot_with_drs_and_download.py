@@ -6,18 +6,10 @@ import json
 
 from get_file_info_by_drs_path import get_file_info_by_drs_path
 from get_snapshot import get_snapshot
-from obtain_token import obtain_session
+from common.obtain_token import obtain_session
 
 
-tdr_domain = "data.terra.bio"
-
-headers = {
-    "User-Agent": "GPO Bound Query",
-    "Content-Type": "application/json",
-}
-
-
-def download_file_from_drs(session, drs_json):
+def download_file_from_drs(session, drs_json, headers):
     resp = session.get(url=drs_json["accessUrl"]["url"], headers=headers)
     with open(f"{drs_json['fileName']}", "wb") as report_file:
         report_file.write(resp.content)
@@ -26,6 +18,12 @@ def download_file_from_drs(session, drs_json):
 
 if __name__ == "__main__":
     session = obtain_session()
+
+    headers = {
+        "User-Agent": "GPO Bound Query",
+        "Content-Type": "application/json",
+    }
+
     print("==>Snapshot Information")
     snapshot_data = get_snapshot(session)
     # For each row in the result
@@ -40,7 +38,7 @@ if __name__ == "__main__":
             drs_json = get_file_info_by_drs_path(
                 session, snapshot_content["technical_report"]
             )
-            download_file_from_drs(session, drs_json)
+            download_file_from_drs(session=session, drs_json=drs_json, headers=headers)
         if snapshot_content.get("indication_based_report"):
             for drs in snapshot_content["indication_based_report"]:
                 print(f"==>Indication Based Report drs: {json.dumps(drs)}")

@@ -1,6 +1,6 @@
 # Use dev endpoint to update sample status
 
-from obtain_token import obtain_session
+from common.obtain_token import obtain_session
 
 # Payload to fill in
 payload = {
