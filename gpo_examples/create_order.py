@@ -5,15 +5,16 @@ from common.obtain_token import obtain_session
 # Example CWGS Order to fill in
 
 
-def place_gpo_order(email: str, payload):
-    session = obtain_session()
+def place_gpo_order(email: str, payload, session):
+    local_session = obtain_session() if not session else session
+
     headers = {
         "Actor-Email": email,
         "Content-Type": "application/json",
         "Accept": "application/json",
         "User-Agent": "bcl-example",
     }
-    res = session.post(
+    res = local_session.post(
         "https://gpo-staging.broadinstitute.org/api/order",
         json=payload,
         headers=headers,
@@ -55,7 +56,8 @@ cwgs_payload = {
     "number_of_samples": "1",
 }
 
+if __name__ == "__main__":
 
-submitter_email = "FILL_IN"
-response = place_gpo_order(submitter_email, cwgs_payload)
-print(response.json())
+    submitter_email = "FILL_IN"
+    response = place_gpo_order(submitter_email, cwgs_payload)
+    print(response.json())

@@ -5,10 +5,12 @@ import json
 import click
 from common.obtain_token import obtain_session
 
+tdr_domain = "data.terra.bio"
 
-def get_snapshot(session, domain, payload, headers, snapshot_id):
+
+def get_snapshot(session, payload, headers, snapshot_id):
     content_response = session.post(
-        url=f"https://{domain}/api/repository/v1/snapshots/{snapshot_id}/data/sample",
+        url=f"https://{tdr_domain}/api/repository/v1/snapshots/{snapshot_id}/data/sample",
         headers=headers,
         data=json.dumps(payload),
     )

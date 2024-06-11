@@ -11,15 +11,19 @@ from google.auth.transport import requests  # type: ignore
 from google.auth.transport.requests import AuthorizedSession
 from google.oauth2 import service_account
 
-# Sets the tokens audience
-target_audience = click.prompt(
-    "Specify the target Audience", default="https://gpo-staging.broadinstitute.org"
-)
-
 
 # If you want to use a human account or service account
 def get_creds_from_human_user():
-    service_account_email = click.prompt("Specify account email to be used")
+
+    # Sets the tokens audience
+    target_audience = click.prompt(
+        "Specify the target Audience", default="https://gpo-staging.broadinstitute.org"
+    )
+
+    expiry = 3600
+    project_id = click.prompt("Specify your Google project ID")
+
+    service_account_email = click.prompt("Specify account email to be impersonated")
     with warnings.catch_warnings():
         warnings.filterwarnings(
             "ignore",
@@ -35,6 +39,8 @@ def get_creds_from_human_user():
         source_credentials=user_creds,
         target_principal=service_account_email,
         target_scopes=["https://www.googleapis.com/auth/cloud-platform"],
+        lifetime=expiry,
+        quota_project_id=project_id,
     )
     target_creds.refresh(requests.Request())
 
@@ -42,11 +48,17 @@ def get_creds_from_human_user():
         target_credentials=target_creds,
         target_audience=target_audience,
         include_email=True,
+        quota_project_id=project_id,
     )
 
 
 # If your running outside of compute engine and not associated with a human user
 def get_creds_from_file():
+    # Sets the tokens audience
+    target_audience = click.prompt(
+        "Specify the target Audience", default="https://gpo-staging.broadinstitute.org"
+    )
+
     return service_account.IDTokenCredentials.from_service_account_file(
         "path/to/svc.json", target_audience=target_audience
     )
@@ -54,6 +66,11 @@ def get_creds_from_file():
 
 # If running in google cloud compute engine
 def get_creds_from_within_compute_engine():
+    # Sets the tokens audience
+    target_audience = click.prompt(
+        "Specify the target Audience", default="https://gpo-staging.broadinstitute.org"
+    )
+
     request = google.auth.transport.requests.Request()
     return compute_engine.IDTokenCredentials(request, target_audience=target_audience)
 
