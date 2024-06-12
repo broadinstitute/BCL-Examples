@@ -12,16 +12,20 @@ Storehouse of Scripts to share with our API customers to assist with their inter
 
 > In [`common/obtain_token.py`](common/obtain_token.py) we generate our valid token and session for all the other requests we make in this library. We have 3 ways to generate a valid authorized session.
 
-- With the email of a user who has the proper permissions, this will commonly be a service account.
-- With a saved credentials file on the current system.
-- From within the google compute engine.
+- Service Account Impersonation: Uses the email of a service account to generate the credentials.
+- Credentials File: Uses a saved credentials file on the current system to generate the credentials.
+- Google Compute: Uses the Google Compute Engine to generate the credentials.
 
 > By default the file uses an email, but this can be changed to fit your needs.
 
-# Gpo Examples
+# Gpo Library
 
-> This directory contains our code for accessing GPO and performing some operations such as creating an order. You can find more information [here](gpo_examples/gpo.md)
+> This library contains code for accessing GPO and performing some operations such as creating an order. You can find more information [here](gpo_examples/gpo.md)
 
-# Terra Examples
+# Terra Library
 
-> This directory contains our code for accessing tdr and performing operations involving snapshots. You can find more information [here](tdr_snapshot_examples/tdr.md)
+> This library contains our code for accessing tdr and performing operations involving snapshots. You can find more information [here](tdr_snapshot_examples/tdr.md)
+
+# End to End Example
+
+The file `extract_files_in_tdr_snapshot_from_snapshot_id.py` is an example of using the libraries end to end from retrieving data from GPO to extracting from TDR.

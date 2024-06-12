@@ -1,4 +1,4 @@
-# Gpo Examples
+# Gpo Library
 
 > This directory contains utility functions with examples to utilize gpo's functionality
 > `create_order.py` conatins code for creating an order in gpo.
