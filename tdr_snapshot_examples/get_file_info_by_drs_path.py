@@ -2,13 +2,6 @@
 
 import json
 
-headers = {
-    "Accept": "application/json",
-    "User-Agent": "GPO Bound Query",
-    "Content-Type": "application/json",
-    "accept": "*/*",
-}
-
 
 def get_file_info_by_drs_path(session, drs_path):
     """
@@ -23,6 +16,12 @@ def get_file_info_by_drs_path(session, drs_path):
     Returns:
         The json of the file from the request.
     """
+    headers = {
+        "Accept": "application/json",
+        "User-Agent": "GPO Bound Query",
+        "Content-Type": "application/json",
+        "accept": "*/*",
+    }
     drs_response = session.post(
         url="https://drshub.dsde-prod.broadinstitute.org/api/v4/drs/resolve",
         headers=headers,

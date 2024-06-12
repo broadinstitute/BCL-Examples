@@ -14,7 +14,13 @@ from google.oauth2 import service_account
 
 # If you want to use a human account or service account
 def get_creds_from_human_user():
+    """
+    This function returns valid credentials that are generated from a valid email with the proper
+    privliges.
 
+    Returns:
+        The generated valid credentials.
+    """
     # Sets the tokens audience
     target_audience = click.prompt(
         "Specify the target Audience", default="https://gpo-staging.broadinstitute.org"
@@ -54,6 +60,13 @@ def get_creds_from_human_user():
 
 # If your running outside of compute engine and not associated with a human user
 def get_creds_from_file():
+    """
+    This function returns valid credentials that are generated from a file saved to the users
+    computer.
+
+    Returns:
+        The generated valid credentials.
+    """
     # Sets the tokens audience
     target_audience = click.prompt(
         "Specify the target Audience", default="https://gpo-staging.broadinstitute.org"
@@ -66,6 +79,13 @@ def get_creds_from_file():
 
 # If running in google cloud compute engine
 def get_creds_from_within_compute_engine():
+    """
+    This function returns valid credentials that are generated from the account
+    currently being used within compute engine.
+
+    Returns:
+        The generated valid credentials.
+    """
     # Sets the tokens audience
     target_audience = click.prompt(
         "Specify the target Audience", default="https://gpo-staging.broadinstitute.org"
@@ -76,6 +96,14 @@ def get_creds_from_within_compute_engine():
 
 
 def obtain_session():
+    """
+    This function returns a valid session object that can be used to make authenticated
+    requests to gpo and terra. You can change how the variable `creds` is set by switching
+    to whichever above function best fits your needs.
+
+    Returns:
+        The generated valid session.
+    """
     # Change this method to whichever credential method you want
     creds = get_creds_from_human_user()
     # Create the session
