@@ -16,7 +16,7 @@ Storehouse of Scripts to share with our API customers to assist with their inter
 - Credentials File: Uses a saved credentials file on the current system to generate the credentials.
 - Google Compute: Uses the Google Compute Engine to generate the credentials.
 
-> By default the file uses an email, but this can be changed to fit your needs.
+> By default the file uses Service Account Impersonation, but this can be changed to fit your needs.
 
 # Gpo Library
 
