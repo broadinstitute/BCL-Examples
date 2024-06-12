@@ -35,6 +35,18 @@ def retrieve_gpo_order(email: str, order_key: str, session):
 
 
 def retrieve_gpo_orders(email: str, project_key, session):
+    """
+     This function gets all orders under a project in gpo and returns the response.
+
+    Args:
+        email: The email of the user who is creating the order.
+        project_key: The key of the project you would like to get the orders from.
+        session: The session in which the order will be created. If no session is given, then
+                 one will be obtained in the function.
+
+    Returns:
+        The gpo response which will contain a list of the orders and their information.
+    """
 
     local_session = obtain_session() if not session else session
 
