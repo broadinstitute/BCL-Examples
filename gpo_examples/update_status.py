@@ -44,8 +44,9 @@ def update_sample_status(order_key, sample_ids: list[str], test_code, email, ses
     return res
 
 
-# Payload to fill in
-response = update_sample_status(
-    order_key="FILL_IN", sample_ids=["FILL_IN"], test_code="FILL_IN", email="FILL_IN"
-)
-print(response.json())
+if __name__ == "__main__":
+    # Payload to fill in
+    response = update_sample_status(
+        order_key="FILL_IN", sample_ids=["FILL_IN"], test_code="FILL_IN", email="FILL_IN"
+    )
+    print(response.json())
