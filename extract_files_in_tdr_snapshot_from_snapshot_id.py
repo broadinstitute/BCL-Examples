@@ -1,3 +1,7 @@
+# This file is a full end to end workflow of gettings order information
+# from gpo, and then snapshot information from terra if there is any
+# and saving it to your computer.
+
 import json
 
 import click
@@ -33,9 +37,15 @@ order_key = click.prompt(
 # click.echo(json.dumps(sam_response.json()))
 gpo_response = None
 if project_key:
-    gpo_response = retrieve_gpo_orders(email="scottmat@broadinstitute.org", project_key=project_key, session=auth_session)
+    gpo_response = retrieve_gpo_orders(
+        email="scottmat@broadinstitute.org",
+        project_key=project_key,
+        session=auth_session,
+    )
 elif order_key:
-    gpo_response = retrieve_gpo_order(email="scottmat@broadinstitute.org", order_key=order_key, session=auth_session)
+    gpo_response = retrieve_gpo_order(
+        email="scottmat@broadinstitute.org", order_key=order_key, session=auth_session
+    )
 
 if gpo_response:
     # print(json.dumps(gpo_response.json()))
@@ -57,8 +67,12 @@ if gpo_response:
 
                         headers.update({"Content-Type": "application/json"})
                         print("------Getting content of snapshot------")
-                        content_response = get_snapshot(session=auth_session, payload=payload, headers=headers,
-                                                        snapshot_id=snapshot_id)
+                        content_response = get_snapshot(
+                            session=auth_session,
+                            payload=payload,
+                            headers=headers,
+                            snapshot_id=snapshot_id,
+                        )
 
                         print(json.dumps(content_response))
                         for snapshot_content in content_response["result"]:
@@ -76,7 +90,9 @@ if gpo_response:
                                 print("------drs data for Tech Report------")
                                 headers.update({"accept": "*/*"})
 
-                                drs_json = get_file_info_by_drs_path(auth_session, snapshot_content["technical_report"])
+                                drs_json = get_file_info_by_drs_path(
+                                    auth_session, snapshot_content["technical_report"]
+                                )
 
                                 print(f"==>file name is {drs_json['fileName']}")
                                 print(f"==>gsUri is {drs_json['gsUri']}")
@@ -93,7 +109,10 @@ if gpo_response:
                                 )
                                 print("------drs data for Indication Report------")
 
-                                drs_json = get_file_info_by_drs_path(auth_session, snapshot_content["indication_based_report"])
+                                drs_json = get_file_info_by_drs_path(
+                                    auth_session,
+                                    snapshot_content["indication_based_report"],
+                                )
 
                                 print(f"==>file name is {drs_json['fileName']}")
                                 print(f"==>gsUri is {drs_json['gsUri']}")

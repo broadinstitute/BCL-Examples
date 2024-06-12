@@ -3,7 +3,21 @@
 from common.obtain_token import obtain_session
 
 
-def update_sample_status(order_key, sample_ids:list[str], test_code, email, session):
+def update_sample_status(order_key, sample_ids: list[str], test_code, email, session):
+    """
+     This function updates the statuses of samples in gpo utlilizing the dev endpoint.
+
+    Args:
+        order_key: The key of the order that has the samples to be updated.
+        sample_ids: A list of strings containing the id's of the samples to be updated.
+        test_code: The code of test you want to update the samples of.
+        email: The email of the user who is updating the samples.
+        session: The session in which the order will be created. If no session is given, then
+                 one will be obtained in the function.
+
+    Returns:
+        The gpo response for updating samples which contains an array of the changes.
+    """
     global headers, res
     payload = {
         "sidr_order_key": order_key,
@@ -22,13 +36,16 @@ def update_sample_status(order_key, sample_ids:list[str], test_code, email, sess
         "User-Agent": "bcl-example",
     }
     res = local_session.patch(
-        f"https://gpo-staging.broadinstitute.org/dev/sample", json=payload, headers=headers
+        f"https://gpo-staging.broadinstitute.org/dev/sample",
+        json=payload,
+        headers=headers,
     )
     res.raise_for_status()
     return res
 
 
 # Payload to fill in
-response = update_sample_status(order_key="FILL_IN", sample_ids=["FILL_IN"], test_code="FILL_IN",
-                                email="FILL_IN")
+response = update_sample_status(
+    order_key="FILL_IN", sample_ids=["FILL_IN"], test_code="FILL_IN", email="FILL_IN"
+)
 print(response.json())

@@ -2,10 +2,20 @@
 
 from common.obtain_token import obtain_session
 
-# Example CWGS Order to fill in
-
 
 def place_gpo_order(email: str, payload, session):
+    """
+    This function creates an order in gpo with the given payload and returns the response.
+
+    Args:
+        email: The email of the user who is creating the order.
+        payload: The payload of which the gpo order is created from.
+        session: The session in which the order will be created. If no session is given, then
+                one will be obtained in the function.
+
+    Returns:
+        The gpo response from creating the order.
+    """
     local_session = obtain_session() if not session else session
 
     headers = {

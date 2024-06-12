@@ -10,6 +10,16 @@ from common.obtain_token import obtain_session
 
 
 def download_file_from_drs(session, drs_json, headers):
+    """
+    This function downloads file information by using the link inside drs_json
+    and saves it to your directory. This includes both pdf files and json files.
+
+    Args:
+        session: The session in which the order will be created. If no session is given, then
+                one will be obtained in the function.
+        drs_json: The json formatted file information obatined from the drs path of the file.
+        headers: The headers of the get request.
+    """
     resp = session.get(url=drs_json["accessUrl"]["url"], headers=headers)
     with open(f"{drs_json['fileName']}", "wb") as report_file:
         report_file.write(resp.content)
