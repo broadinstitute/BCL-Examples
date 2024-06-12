@@ -12,6 +12,24 @@ from gpo_examples.get_order import retrieve_gpo_orders, retrieve_gpo_order
 from tdr_snapshot_examples.get_file_info_by_drs_path import get_file_info_by_drs_path
 from tdr_snapshot_examples.get_snapshot import get_snapshot
 
+
+def retrieve_report_field_content(report_index):
+    report_content = report_index
+    if isinstance(report_index, str):
+        report_content = [report_index]
+    for report in report_content:
+        drs_json = get_file_info_by_drs_path(auth_session, report)
+
+        print(f"==>file name is {drs_json['fileName']}")
+        print(f"==>gsUri is {drs_json['gsUri']}")
+        print(
+            f"==> Access Url for downloading is {drs_json['accessUrl']['url']}"
+        )
+        print(
+            f"\n\n To download this on the command line execute \ncurl -X GET -o [path to local file] \"{drs_json['accessUrl']['url']}\" \n\n"
+        )
+
+
 tdr_domain = "data.terra.bio"
 
 creds: IDTokenCredentials
@@ -57,68 +75,55 @@ if gpo_response:
             print(f"\n\n==> For order {order['order_id']}")
         for test in order["tests"]:
             for sample in test["test_samples"]:
-                print(f"==> Sample ID is {sample['sample_id']}")
-                print(f"==> Vessel Barcode is {sample['client_barcode']}")
+                if sample.get('sample_id'):
+                    print(f"==> Sample ID is {sample['sample_id']}")
+                if sample.get('client_barcode'):
+                    print(f"==> Vessel Barcode is {sample['client_barcode']}")
                 print(f"==> SIDR Sample ID is {sample['sidr_sample_id']}")
                 print(f"==> Sample status is {sample['test_sample_status']}")
-                for result in sample["results"]:
-                    if result["result_type"] == "tdr_snapshot":
-                        snapshot_id = result["result_value"]
+                if sample.get("results"):
+                    for result in sample["results"]:
+                        if result["result_type"] == "tdr_snapshot":
+                            snapshot_id = result["result_value"]
 
-                        headers.update({"Content-Type": "application/json"})
-                        print("------Getting content of snapshot------")
-                        content_response = get_snapshot(
-                            session=auth_session,
-                            payload=payload,
-                            headers=headers,
-                            snapshot_id=snapshot_id,
-                        )
-
-                        print(json.dumps(content_response))
-                        for snapshot_content in content_response["result"]:
-                            print(
-                                f"==>results value is {snapshot_content['pass_fail_value']}"
-                            )
-                            print(
-                                f"==>sample id is {snapshot_content['collaborator_sample_id']}"
+                            headers.update({"Content-Type": "application/json"})
+                            print("------Getting content of snapshot------")
+                            content_response = get_snapshot(
+                                session=auth_session,
+                                snapshot_id=snapshot_id,
                             )
 
-                            if snapshot_content.get("technical_report"):
+                            print(json.dumps(content_response))
+                            for snapshot_content in content_response["result"]:
+                                if snapshot_content.get('pass_fail_value'):
+                                    print(
+                                        f"==>results value is {snapshot_content['pass_fail_value']}"
+                                    )
                                 print(
-                                    f"==>Tech Report path is {snapshot_content['technical_report']}"
-                                )
-                                print("------drs data for Tech Report------")
-                                headers.update({"accept": "*/*"})
-
-                                drs_json = get_file_info_by_drs_path(
-                                    auth_session, snapshot_content["technical_report"]
-                                )
-
-                                print(f"==>file name is {drs_json['fileName']}")
-                                print(f"==>gsUri is {drs_json['gsUri']}")
-                                print(
-                                    f"==> Access Url for downloading is {drs_json['accessUrl']['url']}"
-                                )
-                                print(
-                                    f"\n\n To download this on the command line execute \ncurl -X GET -o [path to local file] \"{drs_json['accessUrl']['url']}\"\n\n"
+                                    f"==>sample id is {snapshot_content['collaborator_sample_id']}"
                                 )
 
-                            if snapshot_content.get("indication_based_report"):
-                                print(
-                                    f"==>Indication Report path is {snapshot_content['indication_based_report']}"
-                                )
-                                print("------drs data for Indication Report------")
+                                if snapshot_content.get("technical_report"):
+                                    print(
+                                        f"==>Tech Report path is {snapshot_content['technical_report']}"
+                                    )
+                                    print("------drs data for Tech Report------")
+                                    headers.update({"accept": "*/*"})
 
-                                drs_json = get_file_info_by_drs_path(
-                                    auth_session,
-                                    snapshot_content["indication_based_report"],
-                                )
+                                    retrieve_report_field_content(snapshot_content["technical_report"])
 
-                                print(f"==>file name is {drs_json['fileName']}")
-                                print(f"==>gsUri is {drs_json['gsUri']}")
-                                print(
-                                    f"==> Access Url for downloading is {drs_json['accessUrl']['url']}"
-                                )
-                                print(
-                                    f"\n\n To download this on the command line execute \ncurl -X GET -o [path to local file] \"{drs_json['accessUrl']['url']}\" \n\n"
-                                )
+                                if snapshot_content.get("indication_based_report"):
+                                    print(
+                                        f"==>Indication Report path is {snapshot_content['indication_based_report']}"
+                                    )
+                                    print("------drs data for Indication Report------")
+
+                                    retrieve_report_field_content(snapshot_content["indication_based_report"])
+
+                                if snapshot_content.get("panel_report"):
+                                    print(
+                                        f"==>Panel Report path is {snapshot_content['panel_report']}"
+                                    )
+                                    print("------drs data for Panel Report------")
+
+                                    retrieve_report_field_content(report_index=snapshot_content["panel_report"])
