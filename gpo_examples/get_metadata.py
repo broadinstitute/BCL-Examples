@@ -3,7 +3,7 @@
 from common.obtain_token import obtain_session
 
 
-def get_metadata_for_test_by_project(project_key, test_code, session):
+def get_metadata_for_test_by_project(project_key, test_code, session=None):
     """
      This function gets test metadata by project and returns the response.
 

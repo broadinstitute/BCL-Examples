@@ -3,7 +3,7 @@
 from common.obtain_token import obtain_session
 
 
-def place_gpo_order(email: str, payload, session):
+def place_gpo_order(email: str, payload, session=None):
     """
     This function creates an order in gpo with the given payload and returns the response.
 

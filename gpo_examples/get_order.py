@@ -5,7 +5,7 @@ from common.obtain_token import obtain_session
 # Key of the order you want to get
 
 
-def retrieve_gpo_order(email: str, order_key: str, session):
+def retrieve_gpo_order(email: str, order_key: str, session=None):
     """
      This function gets an order in gpo and returns the response.
 

@@ -5,34 +5,13 @@
 import json
 
 import click
-from google.auth.compute_engine import IDTokenCredentials
 
 from common.obtain_token import obtain_session
 from gpo_examples.get_order import retrieve_gpo_orders, retrieve_gpo_order
-from tdr_snapshot_examples.get_file_info_by_drs_path import get_file_info_by_drs_path
 from tdr_snapshot_examples.get_snapshot import get_snapshot
-
-
-def retrieve_report_field_content(report_index):
-    report_content = report_index
-    if isinstance(report_index, str):
-        report_content = [report_index]
-    for report in report_content:
-        drs_json = get_file_info_by_drs_path(auth_session, report)
-
-        print(f"==>file name is {drs_json['fileName']}")
-        print(f"==>gsUri is {drs_json['gsUri']}")
-        print(
-            f"==> Access Url for downloading is {drs_json['accessUrl']['url']}"
-        )
-        print(
-            f"\n\n To download this on the command line execute \ncurl -X GET -o [path to local file] \"{drs_json['accessUrl']['url']}\" \n\n"
-        )
-
+from tdr_snapshot_examples.get_snapshot_with_drs_and_download import retrieve_report_field_content
 
 tdr_domain = "data.terra.bio"
-
-creds: IDTokenCredentials
 
 payload = {
     "offset": 0,
@@ -42,7 +21,6 @@ payload = {
     "filter": "",
 }
 auth_session = obtain_session()
-headers = {"Accept": "application/json", "User-Agent": "GPO Bound Query"}
 
 project_key = click.prompt(
     "Enter the BCL Project for which you wish to retrieve information.", default=""
@@ -86,7 +64,6 @@ if gpo_response:
                         if result["result_type"] == "tdr_snapshot":
                             snapshot_id = result["result_value"]
 
-                            headers.update({"Content-Type": "application/json"})
                             print("------Getting content of snapshot------")
                             content_response = get_snapshot(
                                 session=auth_session,
@@ -108,7 +85,6 @@ if gpo_response:
                                         f"==>Tech Report path is {snapshot_content['technical_report']}"
                                     )
                                     print("------drs data for Tech Report------")
-                                    headers.update({"accept": "*/*"})
 
                                     retrieve_report_field_content(snapshot_content["technical_report"])
 

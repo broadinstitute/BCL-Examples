@@ -18,14 +18,14 @@ Storehouse of Scripts to share with our API customers to assist with their inter
 
 > By default the file uses Service Account Impersonation, but this can be changed to fit your needs.
 
-# Gpo Library
+# BCL Orders Library
 
-> This library contains code for accessing GPO and performing some operations such as creating an order. You can find more information [here](gpo_examples/gpo.md)
+> This library contains code for accessing BCL Orders API endpoints and performing some operations such as creating an order. You can find more information [here](gpo_examples/gpo.md)
 
-# Terra Library
+# Terra Data Repository (TDR) Library
 
-> This library contains our code for accessing tdr and performing operations involving snapshots. You can find more information [here](tdr_snapshot_examples/tdr.md)
+> This library contains our code for accessing TDR API Endpoints and performing operations involving snapshots. You can find more information [here](tdr_snapshot_examples/tdr.md)
 
 # End to End Example
 
-The file `extract_files_in_tdr_snapshot_from_snapshot_id.py` is an example of using the libraries end to end from retrieving data from GPO to extracting from TDR.
+The files [`extract_files_in_tdr_snapshot_from_snapshot_id.py`](extract_files_in_tdr_snapshot_from_snapshot_id.py) and [`place_order_and_manipulate_status.py`](place_order_and_manipulate_status.py) are examples of using the libraries end to end from placing and retrieving data from GPO to modifying statuses and extracting results from TDR.

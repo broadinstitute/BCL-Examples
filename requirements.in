@@ -3,3 +3,4 @@ google-oauth
 click
 pydantic
 pip-tools
+faker
