@@ -3,12 +3,14 @@
 # and saving it to your computer.
 
 import json
+from typing import TYPE_CHECKING
 
 import click
 
-from common.obtain_token import obtain_session
 from gpo_examples.get_order import retrieve_gpo_orders, retrieve_gpo_order
+
 from tdr_snapshot_examples.get_snapshot import get_snapshot
+from common.obtain_token import obtain_session
 from tdr_snapshot_examples.get_snapshot_with_drs_and_download import retrieve_report_field_content
 
 tdr_domain = "data.terra.bio"
@@ -86,7 +88,7 @@ if gpo_response:
                                     )
                                     print("------drs data for Tech Report------")
 
-                                    retrieve_report_field_content(snapshot_content["technical_report"])
+                                    retrieve_report_field_content(snapshot_content["technical_report"], session=auth_session)
 
                                 if snapshot_content.get("indication_based_report"):
                                     print(
@@ -94,7 +96,7 @@ if gpo_response:
                                     )
                                     print("------drs data for Indication Report------")
 
-                                    retrieve_report_field_content(snapshot_content["indication_based_report"])
+                                    retrieve_report_field_content(snapshot_content["indication_based_report"], session=auth_session)
 
                                 if snapshot_content.get("panel_report"):
                                     print(
@@ -102,4 +104,4 @@ if gpo_response:
                                     )
                                     print("------drs data for Panel Report------")
 
-                                    retrieve_report_field_content(report_index=snapshot_content["panel_report"])
+                                    retrieve_report_field_content(report_index=snapshot_content["panel_report"], session=auth_session)
