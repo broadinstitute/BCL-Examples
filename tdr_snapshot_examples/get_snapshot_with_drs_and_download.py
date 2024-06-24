@@ -3,14 +3,13 @@
 # to the file system.
 
 import json
+from typing import TYPE_CHECKING
 
 import click as click
 
-from extract_files_in_tdr_snapshot_from_snapshot_id import auth_session
-from get_file_info_by_drs_path import get_file_info_by_drs_path
-from get_snapshot import get_snapshot
-from common.obtain_token import obtain_session
 from tdr_snapshot_examples.get_file_info_by_drs_path import get_file_info_by_drs_path
+from tdr_snapshot_examples.get_snapshot import get_snapshot
+from common.obtain_token import obtain_session
 
 
 def download_file_from_drs(session, drs_json):
@@ -35,12 +34,12 @@ def download_file_from_drs(session, drs_json):
         report_file.close()
 
 
-def retrieve_report_field_content(report_index):
+def retrieve_report_field_content(report_index, session):
     report_content = report_index
     if isinstance(report_index, str):
         report_content = [report_index]
     for report in report_content:
-        drs_json = get_file_info_by_drs_path(auth_session, report)
+        drs_json = get_file_info_by_drs_path(session, report)
 
         print(f"==>file name is {drs_json['fileName']}")
         print(f"==>gsUri is {drs_json['gsUri']}")
@@ -50,7 +49,7 @@ def retrieve_report_field_content(report_index):
         print(
             f"\n\n To download this on the command line execute \ncurl -X GET -o [path to local file] \"{drs_json['accessUrl']['url']}\" \n\n"
         )
-        download_file_from_drs(session=auth_session, drs_json=drs_json)
+        download_file_from_drs(session=session, drs_json=drs_json)
 
 
 if __name__ == "__main__":
@@ -70,12 +69,12 @@ if __name__ == "__main__":
                 print(
                     f"==>Technical Report drs: {json.dumps(snapshot_content['technical_report'])}"
                 )
-                retrieve_report_field_content(snapshot_content["technical_report"])
+                retrieve_report_field_content(snapshot_content["technical_report"], session)
             if snapshot_content.get("indication_based_report"):
                 print(f"==>Indication Based Report drs: {json.dumps(snapshot_content['indication_based_report'])}")
-                retrieve_report_field_content(snapshot_content["indication_based_report"])
+                retrieve_report_field_content(snapshot_content["indication_based_report"], session)
 
             if snapshot_content.get("panel_report"):
                 print(f"==>Panel Report drs: {json.dumps(snapshot_content['indication_based_report'])}")
-                retrieve_report_field_content(snapshot_content["indication_based_report"])
+                retrieve_report_field_content(snapshot_content["indication_based_report"], session)
 
