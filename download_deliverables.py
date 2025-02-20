@@ -26,6 +26,8 @@ def parse_args():
                         help='file mapping dictionary, e.g. {"file1": "path1", "file2": "path2"}')
     parser.add_argument('--creds', type=str,
                         help='path to service account credentials file')
+    parser.add_argument('-d', action='store_true',
+                        help='dry run -- will query endpoints to determine files to download, but will not perform the downloads')
     parser.add_argument('--server', type=str, default='https://gpo-staging.broadinstitute.org', help='GPO server URL')
     return parser.parse_args()
 
@@ -55,7 +57,7 @@ class DeliverableSpec:
     url: str
 
 # returns a list of dictionaries, each with the name and url of the deliverable
-def extract_deliverable_urls(deliverables_url, session) -> List[DeliverableSpec]:
+def extract_deliverable_specs(deliverables_url, session) -> List[DeliverableSpec]:
     response = session.get(deliverables_url, headers=api_headers)
     response.raise_for_status()
     deliverable = json.loads(response.content)
@@ -67,13 +69,19 @@ class DownloadResult:
     url: str
     status: str
 
-def download_deliverable(deliverable_spec: DeliverableSpec, session):
+def download_deliverable(deliverable_spec: DeliverableSpec, session, is_dry_run: bool = False):
+    if (is_dry_run):
+        print(f"Would download {deliverable_spec.name} from {deliverable_spec.url}")
+        return DownloadResult(deliverable_spec.url, "skipped")
+
+    print(f"Downloading {deliverable_spec.name} from {deliverable_spec.url}", end='')
     response = session.get(deliverable_spec.url, headers=api_headers)
     response.raise_for_status()
     signed_url = response.url
-    print(f"Downloading {deliverable_spec.name} from {signed_url}")
+
     urllib.request.urlretrieve(signed_url, "test123.txt")
-    return DownloadResult(signed_url, "success")
+    print(' - success')
+    return DownloadResult(deliverable_spec.url, "success")
 
 def main():
     args = parse_args()
@@ -83,14 +91,22 @@ def main():
     order = get_order(args.snapshot_id, auth_session)
     deliverables_urls_to_fetch = extract_deliverables_urls(order)
 
-    deliverable_urls = []
 
-    for deliverables_url in itertools.islice(deliverables_urls_to_fetch, max_sample_result_limit):
-        deliverable_urls.extend(extract_deliverable_urls(deliverables_url, auth_session))
+    print(f'Found {len(deliverables_urls_to_fetch)} results with deliverables to download')
+    if (max_sample_result_limit and len(deliverables_urls_to_fetch) > max_sample_result_limit):
+        print(f'Limiting to {max_sample_result_limit} results')
+        deliverable_urls = itertools.islice(deliverables_urls_to_fetch, max_sample_result_limit)
+    deliverable_specs = []
+    for deliverables_url in deliverables_urls_to_fetch:
+        deliverable_specs.extend(extract_deliverable_specs(deliverables_url, auth_session))
 
+    print(f'Found {len(deliverables_urls_to_fetch)} files to download')
+    if (max_download_limit and len(deliverable_specs) > max_download_limit):
+        print(f'Limiting to first {max_sample_result_limit} files')
+        deliverable_specs = itertools.islice(deliverable_specs, max_download_limit)
     download_log = []
-    for deliverable_spec in itertools.islice(deliverable_urls, max_download_limit):
-        download_log.append(download_deliverable(deliverable_spec, auth_session))
+    for deliverable_spec in deliverable_specs:
+        download_log.append(download_deliverable(deliverable_spec, auth_session, args.d))
 
 
 
