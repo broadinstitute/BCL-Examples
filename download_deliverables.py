@@ -23,9 +23,9 @@ from typing import List
 max_download_limit = 1
 max_sample_result_limit = 1
 api_headers = {
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-        "User-Agent": "bcl-example"
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'User-Agent': 'bcl-example'
     }
 
 def parse_args():
@@ -43,7 +43,7 @@ def obtain_session(target_audience):
     # Create and configure AuthorizedSession using ambient credentials (See https://google.aip.dev/auth/4110)
     credentials, _ = google.auth.default()
     if isinstance(credentials, google.auth.impersonated_credentials.Credentials):
-        logging.debug("Using Application Default Credentials")
+        logging.debug('Using Application Default Credentials')
         credentials = google.auth.impersonated_credentials.IDTokenCredentials(credentials, target_audience=target_audience)
     else:
         credentials = google.oauth2.id_token.fetch_id_token_credentials(target_audience,
@@ -56,7 +56,7 @@ def obtain_session(target_audience):
 # gets and parses the details for an order
 def get_order(order_key, session):
     res = session.get(
-        f"https://gpo-staging.broadinstitute.org/api/order/{order_key}", headers=api_headers
+        f'https://gpo-staging.broadinstitute.org/api/order/{order_key}', headers=api_headers
     )
     res.raise_for_status()
 
@@ -66,10 +66,10 @@ def get_order(order_key, session):
 def extract_deliverables_urls(order):
     urls_to_fetch: List[str] = []
     # for each test, iterate through the samples, and for each sample, iterate through the results
-    for test in order["tests"]:
-        for sample in test["test_samples"]:
-            for result in sample["results"]:
-                deliverables_url = result.get("links", {}).get("deliverables")
+    for test in order['tests']:
+        for sample in test['test_samples']:
+            for result in sample['results']:
+                deliverables_url = result.get('links', {}).get('deliverables')
                 urls_to_fetch.append(deliverables_url)
     return urls_to_fetch
 
@@ -93,21 +93,21 @@ class DownloadResult:
 
 def download_deliverable(deliverable_spec: DeliverableSpec, session, is_dry_run: bool = False):
     if (is_dry_run):
-        print(f"Would download {deliverable_spec.name} from {deliverable_spec.url}")
-        return DownloadResult(deliverable_spec.url, "skipped")
+        print(f'Would download {deliverable_spec.name} from {deliverable_spec.url}')
+        return DownloadResult(deliverable_spec.url, 'skipped')
 
-    print(f"Downloading {deliverable_spec.name} from {deliverable_spec.url}", end='')
+    print(f'Downloading {deliverable_spec.name} from {deliverable_spec.url}', end='')
     response = session.get(deliverable_spec.url, headers=api_headers)
     response.raise_for_status()
     signed_url = response.url
 
-    urllib.request.urlretrieve(signed_url, "test123.txt")
+    urllib.request.urlretrieve(signed_url, 'test123.txt')
     print(' - success')
-    return DownloadResult(deliverable_spec.url, "success")
+    return DownloadResult(deliverable_spec.url, 'success')
 
 def main():
     # Configure logging:
-    logging.basicConfig(level=os.environ.get("LOG_LEVEL", "INFO"))
+    logging.basicConfig(level=os.environ.get('LOG_LEVEL', 'INFO'))
 
     args = parse_args()
 
