@@ -1,15 +1,25 @@
 # script that accepts a snapshot id and a file-mapping dictionary as command-line arguments
 import itertools
-from dataclasses import dataclass
-from typing import List
 import argparse
 import json
 import urllib.request
+import logging
+import os
 
-from common.obtain_token import obtain_session
-from common.obtain_token import LoginMethod
+import google.auth
+import google.auth.transport.requests
+import google.auth.impersonated_credentials
+import google.oauth2.id_token
 
-# setting these to 1 is useful for testing if you don't want to retrieve all deliverables
+from dataclasses import dataclass
+from typing import List
+
+# Script for retrieving deliverable files from a GPO order.
+# This uses Google Application Default Credentials to handle authentication (See https://google.aip.dev/auth/4110)
+# For example, if the GOOGLE_APPLICATION_CREDENTIALS environment variable is set, the script will look for a credentials file there.
+
+
+# setting these to 1 is useful for testing if you don't want to retrieve all deliverables while testing
 max_download_limit = 1
 max_sample_result_limit = 1
 api_headers = {
@@ -21,15 +31,27 @@ api_headers = {
 def parse_args():
     parser = argparse.ArgumentParser(
         description='script that accepts a snapshot id and a file-mapping dictionary as command-line arguments')
-    parser.add_argument('snapshot_id', type=str, help='snapshot id')
+    parser.add_argument('order_id', type=str, help='order id')
     parser.add_argument('file_mapping', type=str,
                         help='file mapping dictionary, e.g. {"file1": "path1", "file2": "path2"}')
-    parser.add_argument('--creds', type=str,
-                        help='path to service account credentials file')
     parser.add_argument('-d', action='store_true',
                         help='dry run -- will query endpoints to determine files to download, but will not perform the downloads')
     parser.add_argument('--server', type=str, default='https://gpo-staging.broadinstitute.org', help='GPO server URL')
     return parser.parse_args()
+
+def obtain_session(target_audience):
+    # Create and configure AuthorizedSession using ambient credentials (See https://google.aip.dev/auth/4110)
+    credentials, _ = google.auth.default()
+    if isinstance(credentials, google.auth.impersonated_credentials.Credentials):
+        logging.debug("Using Application Default Credentials")
+        credentials = google.auth.impersonated_credentials.IDTokenCredentials(credentials, target_audience=target_audience)
+    else:
+        credentials = google.oauth2.id_token.fetch_id_token_credentials(target_audience,
+                                                                        google.auth.transport.requests.Request())
+    session = google.auth.transport.requests.AuthorizedSession(credentials)
+    session.headers = api_headers
+    return session
+
 
 # gets and parses the details for an order
 def get_order(order_key, session):
@@ -84,23 +106,25 @@ def download_deliverable(deliverable_spec: DeliverableSpec, session, is_dry_run:
     return DownloadResult(deliverable_spec.url, "success")
 
 def main():
+    # Configure logging:
+    logging.basicConfig(level=os.environ.get("LOG_LEVEL", "INFO"))
+
     args = parse_args()
 
-    auth_session = obtain_session(LoginMethod.FILE, args.creds, args.server)
+    auth_session = obtain_session(args.server)
 
-    order = get_order(args.snapshot_id, auth_session)
+    order = get_order(args.order_id, auth_session)
     deliverables_urls_to_fetch = extract_deliverables_urls(order)
-
 
     print(f'Found {len(deliverables_urls_to_fetch)} results with deliverables to download')
     if (max_sample_result_limit and len(deliverables_urls_to_fetch) > max_sample_result_limit):
         print(f'Limiting to {max_sample_result_limit} results')
-        deliverable_urls = itertools.islice(deliverables_urls_to_fetch, max_sample_result_limit)
+        deliverables_urls_to_fetch = itertools.islice(deliverables_urls_to_fetch, max_sample_result_limit)
     deliverable_specs = []
     for deliverables_url in deliverables_urls_to_fetch:
         deliverable_specs.extend(extract_deliverable_specs(deliverables_url, auth_session))
 
-    print(f'Found {len(deliverables_urls_to_fetch)} files to download')
+    print(f'Found {len(deliverable_specs)} files to download')
     if (max_download_limit and len(deliverable_specs) > max_download_limit):
         print(f'Limiting to first {max_sample_result_limit} files')
         deliverable_specs = itertools.islice(deliverable_specs, max_download_limit)
