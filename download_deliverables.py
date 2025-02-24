@@ -18,10 +18,6 @@ from typing import List
 # This uses Google Application Default Credentials to handle authentication (See https://google.aip.dev/auth/4110)
 # For example, if the GOOGLE_APPLICATION_CREDENTIALS environment variable is set, the script will look for a credentials file there.
 
-# setting these to 1 is useful for testing if you don't want to retrieve all deliverables while testing
-max_download_limit = 1
-max_sample_result_limit = 1
-
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -38,6 +34,14 @@ def parse_args():
         "-d",
         action="store_true",
         help="dry run -- will query endpoints to determine files to download, but will not perform the downloads",
+    )
+    parser.add_argument(
+        "--max_download_limit",
+        help="useful for testing if you don't want to retrieve all deliverables while testing",
+    )
+    parser.add_argument(
+        "--max_sample_result_limit",
+        help="useful for testing if you don't want to retrieve all results for a given sample",
     )
     parser.add_argument(
         "--server",
@@ -147,39 +151,38 @@ def main():
 
     args = parse_args()
     file_mapping = json.loads(args.file_mapping or "{}")
-    auth_session = obtain_session(args.server)
+    sesstion = obtain_session(args.server)
 
-    order = get_order(args.order_id, auth_session, args.server)
+    order = get_order(args.order_id, sesstion, args.server)
     deliverables_urls_to_fetch = extract_deliverables_urls(order)
 
     logging.info(
         f"Found {len(deliverables_urls_to_fetch)} result(s) with deliverables to download"
     )
     if (
-        max_sample_result_limit
-        and len(deliverables_urls_to_fetch) > max_sample_result_limit
+        args.max_sample_result_limit
+        and len(deliverables_urls_to_fetch) > args.max_sample_result_limit
     ):
-        logging.info(f"Limiting to {max_sample_result_limit} result(s)")
-        deliverables_urls_to_fetch = itertools.islice(
-            deliverables_urls_to_fetch, max_sample_result_limit
-        )
+        logging.info(f"Limiting to {args.max_sample_result_limit} result(s)")
+        deliverables_urls_to_fetch = deliverables_urls_to_fetch[
+            : args.max_sample_result_limit
+        ]
+
     deliverable_specs = []
     for deliverables_url in deliverables_urls_to_fetch:
-        deliverable_specs.extend(
-            extract_deliverable_specs(deliverables_url, auth_session)
-        )
+        deliverable_specs.extend(extract_deliverable_specs(deliverables_url, sesstion))
 
     print(f"Found {len(deliverable_specs)} file(s) to download")
-    if max_download_limit and len(deliverable_specs) > max_download_limit:
-        print(f"Limiting to first {max_sample_result_limit} file(s)")
-        deliverable_specs = itertools.islice(deliverable_specs, max_download_limit)
+    if args.max_download_limit and len(deliverable_specs) > args.max_download_limit:
+        print(f"Limiting to first {args.max_download_limit} file(s)")
+        deliverable_specs = deliverable_specs[: args.max_download_limit]
     download_log = []
     for deliverable_spec in deliverable_specs:
         download_log.append(
             download_deliverable(
                 deliverable_spec,
                 file_mapping.get(deliverable_spec.name, deliverable_spec.name),
-                auth_session,
+                sesstion,
                 args.d,
             )
         )
