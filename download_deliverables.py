@@ -29,9 +29,10 @@ def parse_args():
     )
     parser.add_argument("order_id", type=str, help="order id")
     parser.add_argument(
-        "file_mapping",
+        "--file_mapping",
         type=str,
         help='file mapping dictionary, e.g. {"file1": "path1", "file2": "path2"}',
+        default="{}",
     )
     parser.add_argument(
         "-d",
@@ -145,7 +146,7 @@ def main():
     logging.basicConfig(level=os.environ.get("LOG_LEVEL", "INFO"))
 
     args = parse_args()
-
+    file_mapping = json.loads(args.file_mapping or "{}")
     auth_session = obtain_session(args.server)
 
     order = get_order(args.order_id, auth_session, args.server)
@@ -176,7 +177,10 @@ def main():
     for deliverable_spec in deliverable_specs:
         download_log.append(
             download_deliverable(
-                deliverable_spec, args.file_mapping, auth_session, args.d
+                deliverable_spec,
+                file_mapping.get(deliverable_spec.name, deliverable_spec.name),
+                auth_session,
+                args.d,
             )
         )
 
