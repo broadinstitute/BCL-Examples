@@ -13,6 +13,8 @@ import google.oauth2.id_token
 
 from dataclasses import dataclass
 from typing import List
+from uuid import UUID
+from enum import Enum
 
 # Script for retrieving deliverable files from a GPO order or Snapshot.
 # This uses Google Application Default Credentials to handle authentication (See https://google.aip.dev/auth/4110)
@@ -23,7 +25,11 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description="script that accepts a snapshot id and a file-mapping dictionary as command-line arguments"
     )
-    parser.add_argument("order_id", type=str, help="order id")
+    parser.add_argument(
+        "id_to_fetch",
+        type=str,
+        help="order id ('SDOR-STAGING-3GJJ') or snapshot id (''e0d21523-2b01-457e-bd85-4cba4b687727')  ",
+    )
     parser.add_argument(
         "--file_mapping",
         type=str,
@@ -73,13 +79,6 @@ def obtain_session(target_audience):
     session = google.auth.transport.requests.AuthorizedSession(credentials)
     session.headers = api_headers
     return session
-
-
-# gets and parses the details for an order
-def get_order(order_key, session, server: str):
-    res = session.get(f"{server}/api/order/{order_key}")
-    res.raise_for_status()
-    return res.json()
 
 
 # returns a list of urls to fetch deliverables from
@@ -145,6 +144,19 @@ def download_deliverable(
     return DownloadResult(deliverable_spec.url, "success")
 
 
+class IdType(Enum):
+    ORDER = "order"
+    SNAPSHOT = "snapshot"
+
+
+def determine_id_type(id_to_fetch: str) -> IdType:
+    try:
+        UUID(id_to_fetch)
+        return IdType.SNAPSHOT
+    except ValueError:
+        return IdType.ORDER
+
+
 def main():
     # Configure logging:
     logging.basicConfig(level=os.environ.get("LOG_LEVEL", "INFO"))
@@ -153,19 +165,16 @@ def main():
     file_mapping = json.loads(args.file_mapping or "{}")
     sesstion = obtain_session(args.server)
 
-    order = get_order(args.order_id, sesstion, args.server)
-    deliverables_urls_to_fetch = extract_deliverables_urls(order)
+    id_to_fetch = args.id_to_fetch
+    id_type = determine_id_type(id_to_fetch)
 
-    logging.info(
-        f"Found {len(deliverables_urls_to_fetch)} result(s) with deliverables to download"
-    )
-    if (
-        args.max_sample_result_limit
-        and len(deliverables_urls_to_fetch) > args.max_sample_result_limit
-    ):
-        logging.info(f"Limiting to {args.max_sample_result_limit} result(s)")
-        deliverables_urls_to_fetch = deliverables_urls_to_fetch[
-            : args.max_sample_result_limit
+    if id_type == IdType.ORDER:
+        deliverables_urls_to_fetch = [
+            f"{args.server}/api/deliverables?order_id={id_to_fetch}"
+        ]
+    else:
+        deliverables_urls_to_fetch = [
+            f"{args.server}/api/deliverables?result_value={id_to_fetch}"
         ]
 
     deliverable_specs = []
