@@ -15,6 +15,12 @@ from dataclasses import dataclass
 from typing import List
 from uuid import UUID
 from enum import Enum
+from pathlib import Path
+import hashlib
+import datetime
+
+staging_server = "https://gpo-staging.broadinstitute.org"
+prod_server = "https://gpo.broadinstitute.org"
 
 # Script for retrieving deliverable files from a GPO order or Snapshot.
 # This uses Google Application Default Credentials to handle authentication (See https://google.aip.dev/auth/4110)
@@ -37,23 +43,30 @@ def parse_args():
         default="{}",
     )
     parser.add_argument(
+        "--target_dir",
+        type=str,
+        help="target folder for placing the downloaded files.  Default is `./deliverables/{id_to_fetch}",
+        default="./deliverables/{id_to_fetch}",
+    )
+    parser.add_argument(
         "-d",
         action="store_true",
         help="dry run -- will query endpoints to determine files to download, but will not perform the downloads",
     )
     parser.add_argument(
+        "-p",
+        action="store_true",
+        help="production server -- if set, will connect to the production server (default is staging)",
+    )
+    parser.add_argument(
+        "-c",
+        action="store_true",
+        help="allow clobber.  By default, this script wil not overwrite files that already exist in the target directory",
+    )
+    parser.add_argument(
         "--max_download_limit",
+        default=4,
         help="useful for testing if you don't want to retrieve all deliverables while testing",
-    )
-    parser.add_argument(
-        "--max_sample_result_limit",
-        help="useful for testing if you don't want to retrieve all results for a given sample",
-    )
-    parser.add_argument(
-        "--server",
-        type=str,
-        default="https://gpo-staging.broadinstitute.org",
-        help="GPO server URL",
     )
     return parser.parse_args()
 
@@ -81,22 +94,11 @@ def obtain_session(target_audience):
     return session
 
 
-# returns a list of urls to fetch deliverables from
-def extract_deliverables_urls(order):
-    urls_to_fetch: List[str] = []
-    # for each test, iterate through the samples, and for each sample, iterate through the results
-    for test in order["tests"]:
-        for sample in test["test_samples"]:
-            for result in sample["results"]:
-                deliverables_url = result.get("links", {}).get("deliverables")
-                urls_to_fetch.append(deliverables_url)
-    return urls_to_fetch
-
-
 @dataclass
 class DeliverableSpec:
     name: str
     url: str
+    md5_url: str = None
 
 
 # returns a list of dictionaries, each with the name and url of the deliverable
@@ -117,36 +119,113 @@ def extract_deliverable_specs(deliverables_url, session) -> List[DeliverableSpec
     )
 
 
+def pair_deliverable_with_md5(
+    deliverable_specs: List[DeliverableSpec],
+) -> List[DeliverableSpec]:
+    # This function pairs deliverables with their corresponding md5 files
+    # The md5 file is expected to be in the same directory as the deliverable
+    # and have the same name with "_md5_" inserted before the path
+    deliverable_specs.sort(key=lambda x: x.name)
+    md5_specs = [d for d in deliverable_specs if "_md5_" in d.name]
+    file_specs = [d for d in deliverable_specs if "_md5_" not in d.name]
+    paired_specs = []
+    for deliverable_spec in file_specs:
+        # to
+        md5_name = f"{deliverable_spec.name[:-5]}_md5_path"
+        md5_spec = next(
+            (md5 for md5 in md5_specs if md5.name == md5_name),
+            None,
+        )
+        paired_specs.append(
+            DeliverableSpec(
+                deliverable_spec.name,
+                deliverable_spec.url,
+                md5_spec.url if md5_spec else None,
+            )
+        )
+    return paired_specs
+
+
+def md5(fname):
+    hash_md5 = hashlib.md5()
+    hash_md5.update(open(fname, "rb").read())
+    return hash_md5.hexdigest()
+
+
 @dataclass
 class DownloadResult:
+    name: str
     url: str
     status: str
+    path: str
+    md5: str = None
+    date: str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    error: str = None  # time the download finished or errored
+
+
+def fetch_with_redirect(url, file_name, session):
+    logging.info(f"Downloading {file_name} from {url}")
+    response = session.get(url)
+    response.raise_for_status()
+    signed_url = response.url
+    urllib.request.urlretrieve(signed_url, file_name)
+    logging.info(f"Downloaded {file_name} from {url} - success")
 
 
 def download_deliverable(
-    deliverable_spec: DeliverableSpec, file_name, session, is_dry_run: bool = False
+    deliverable_spec: DeliverableSpec,
+    file_name,
+    session,
+    is_dry_run: bool = False,
+    allow_clobber: bool = False,
 ):
     if is_dry_run:
-        logging.info(
-            f"Would download {deliverable_spec.name} from {deliverable_spec.url}"
+        logging.info(f"Would download {file_name} from {deliverable_spec.url}")
+        return DownloadResult(
+            deliverable_spec.name, deliverable_spec.url, "skipped", file_name
         )
-        return DownloadResult(deliverable_spec.url, "skipped")
+    if os.path.exists(file_name) and not allow_clobber:
+        logging.info(f"Skipping download - {file_name} already exists")
+        return DownloadResult(
+            deliverable_spec.name, deliverable_spec.url, "skipped", file_name
+        )
+    try:
 
-    logging.info(f"Downloading {deliverable_spec.name} from {deliverable_spec.url}")
-    response = session.get(deliverable_spec.url)
-    response.raise_for_status()
-    signed_url = response.url
+        fetch_with_redirect(deliverable_spec.url, file_name, session)
+        file_md5 = ""
+        if deliverable_spec.md5_url:
+            fetch_with_redirect(deliverable_spec.url, file_name + ".md5", session)
+            file_md5 = md5(file_name)
+            expected_md5 = open(file_name + ".md5", "r").read().strip()
+            if file_md5 == expected_md5:
+                logging.info(f"MD5 check passed for {file_name} - {file_md5}")
+            else:
+                raise Exception(
+                    f"MD5 check failed for {file_name} - file md5 was {file_md5}, expected {expected_md5}"
+                )
 
-    urllib.request.urlretrieve(signed_url, file_name)
-    logging.info(
-        f"Downloaded {deliverable_spec.name} from {deliverable_spec.url} - success"
-    )
-    return DownloadResult(deliverable_spec.url, "success")
+        return DownloadResult(
+            deliverable_spec.name,
+            deliverable_spec.url,
+            "downloaded",
+            file_name,
+            file_md5,
+        )
+    except Exception as e:
+        logging.error(f"Failed to download {file_name} from {deliverable_spec.url}")
+        logging.error(e)
+        return DownloadResult(
+            deliverable_spec.name,
+            deliverable_spec.url,
+            "failed",
+            file_name,
+            error=str(e),
+        )
 
 
 class IdType(Enum):
-    ORDER = "order"
-    SNAPSHOT = "snapshot"
+    ORDER = "order_id"
+    SNAPSHOT = "result_value"
 
 
 def determine_id_type(id_to_fetch: str) -> IdType:
@@ -162,39 +241,54 @@ def main():
     logging.basicConfig(level=os.environ.get("LOG_LEVEL", "INFO"))
 
     args = parse_args()
+
+    target_dir = args.target_dir or "./"
+    target_dir = target_dir.format(id_to_fetch=args.id_to_fetch)
+    Path(target_dir).mkdir(parents=True, exist_ok=True)
+
     file_mapping = json.loads(args.file_mapping or "{}")
-    sesstion = obtain_session(args.server)
+
+    server = prod_server if args.p else staging_server
+    session = obtain_session(server)
 
     id_to_fetch = args.id_to_fetch
     id_type = determine_id_type(id_to_fetch)
-
-    if id_type == IdType.ORDER:
-        deliverables_urls_to_fetch = [
-            f"{args.server}/api/deliverables?order_id={id_to_fetch}"
-        ]
-    else:
-        deliverables_urls_to_fetch = [
-            f"{args.server}/api/deliverables?result_value={id_to_fetch}"
-        ]
+    deliverables_urls_to_fetch = [
+        f"{server}/api/deliverables?{id_type.value}={id_to_fetch}"
+    ]
 
     deliverable_specs = []
     for deliverables_url in deliverables_urls_to_fetch:
-        deliverable_specs.extend(extract_deliverable_specs(deliverables_url, sesstion))
+        deliverable_specs.extend(extract_deliverable_specs(deliverables_url, session))
 
     print(f"Found {len(deliverable_specs)} file(s) to download")
     if args.max_download_limit and len(deliverable_specs) > args.max_download_limit:
         print(f"Limiting to first {args.max_download_limit} file(s)")
         deliverable_specs = deliverable_specs[: args.max_download_limit]
-    download_log = []
-    for deliverable_spec in deliverable_specs:
-        download_log.append(
-            download_deliverable(
-                deliverable_spec,
-                file_mapping.get(deliverable_spec.name, deliverable_spec.name),
-                sesstion,
-                args.d,
-            )
+
+    paired_specs = pair_deliverable_with_md5(deliverable_specs)
+
+    manifest_file_name = os.path.join(target_dir, "manifest.txt")
+    with open(manifest_file_name, "a") as f:
+        f.write("time, type, status, path, url, md5, error\n")
+
+    for deliverable_spec in paired_specs:
+        download_dest = os.path.join(
+            target_dir, file_mapping.get(deliverable_spec.name, deliverable_spec.name)
         )
+        result = download_deliverable(
+            deliverable_spec,
+            download_dest,
+            session,
+            is_dry_run=args.d,
+            allow_clobber=args.c,
+        )
+        with open(manifest_file_name, "a") as f:
+            f.write(
+                f"{result.date}, {result.name}, {result.status}, {result.path}, {result.url}, {result.md5}, {result.error}\n"
+            )
+
+    logging.info("Download process complete")
 
 
 if __name__ == "__main__":
