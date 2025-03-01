@@ -39,7 +39,7 @@ def parse_args():
     parser.add_argument(
         "--file_mapping",
         type=str,
-        help='file mapping dictionary, e.g. {"file1": "path1", "file2": "path2"}',
+        help='file mapping dictionary, e.g. {"cram_path": "cram", "crai_path": "crai"}',
         default="{}",
     )
     parser.add_argument(
@@ -65,7 +65,7 @@ def parse_args():
     )
     parser.add_argument(
         "--max_download_limit",
-        default=4,
+        default=None,
         help="useful for testing if you don't want to retrieve all deliverables while testing",
     )
     return parser.parse_args()
@@ -168,6 +168,8 @@ def fetch_with_redirect(url, file_name, session):
     response = session.get(url)
     response.raise_for_status()
     signed_url = response.url
+    # make the containing directory if it doesn't exist -- in case it was specified in the map
+    Path(os.path.dirname(file_name)).mkdir(parents=True, exist_ok=True)
     urllib.request.urlretrieve(signed_url, file_name)
     logging.info(f"Downloaded {file_name} from {url} - success")
 
@@ -194,7 +196,7 @@ def download_deliverable(
         fetch_with_redirect(deliverable_spec.url, file_name, session)
         file_md5 = ""
         if deliverable_spec.md5_url:
-            fetch_with_redirect(deliverable_spec.url, file_name + ".md5", session)
+            fetch_with_redirect(deliverable_spec.md5_url, file_name + ".md5", session)
             file_md5 = md5(file_name)
             expected_md5 = open(file_name + ".md5", "r").read().strip()
             if file_md5 == expected_md5:
