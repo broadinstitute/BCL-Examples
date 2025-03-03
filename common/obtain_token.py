@@ -10,6 +10,7 @@ from google.auth import impersonated_credentials
 from google.auth.transport import requests  # type: ignore
 from google.auth.transport.requests import AuthorizedSession
 from google.oauth2 import service_account
+from enum import Enum
 
 
 # If you want to use a human account or service account
@@ -59,7 +60,7 @@ def get_creds_from_human_user():
 
 
 # If your running outside of compute engine and not associated with a human user
-def get_creds_from_file():
+def get_creds_from_file(file_path:str | None="path/to/svc.json", target_audience:str=None):
     """
     This function returns valid credentials that are generated from a file saved to the users
     computer.
@@ -68,12 +69,14 @@ def get_creds_from_file():
         The generated valid credentials.
     """
     # Sets the tokens audience
-    target_audience = click.prompt(
-        "Specify the target Audience", default="https://gpo-staging.broadinstitute.org"
-    )
+    if not target_audience:
+        target_audience = click.prompt(
+            "Specify the target Audience", default="https://gpo-staging.broadinstitute.org"
+        )
 
+    print(f"Using credentials from file: {file_path}")
     return service_account.IDTokenCredentials.from_service_account_file(
-        "path/to/svc.json", target_audience=target_audience
+        file_path, target_audience=target_audience
     )
 
 
@@ -94,8 +97,12 @@ def get_creds_from_within_compute_engine():
     request = google.auth.transport.requests.Request()
     return compute_engine.IDTokenCredentials(request, target_audience=target_audience)
 
+class LoginMethod(Enum):
+    HUMAN = "human"
+    FILE = "file"
+    COMPUTE_ENGINE = "compute_engine"
 
-def obtain_session():
+def obtain_session(login_method: LoginMethod = LoginMethod.FILE, creds_file_path:str=None, target_audience:str=None):
     """
     This function returns a valid session object that can be used to make authenticated
     requests to gpo and terra. You can change how the variable `creds` is set by switching
@@ -104,8 +111,14 @@ def obtain_session():
     Returns:
         The generated valid session.
     """
-    # Change this method to whichever credential method you want
-    creds = get_creds_from_human_user()
+    creds = None
+    if (login_method == LoginMethod.FILE):
+        creds = get_creds_from_file(creds_file_path, target_audience)
+    elif (login_method == LoginMethod.HUMAN):
+        creds = get_creds_from_human_user()
+    elif (login_method == LoginMethod.COMPUTE_ENGINE):
+        creds = get_creds_from_within_compute_engine()
+
     # Create the session
     authed_session = AuthorizedSession(creds)
     # Need this initial request to generate the token for tdr usage
