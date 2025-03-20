@@ -22,9 +22,9 @@ Storehouse of Scripts to share with our API customers to assist with their inter
 
 > This library contains code for accessing BCL Orders API endpoints and performing some operations such as creating an order. You can find more information [here](gpo_examples/gpo.md)
 
-# Terra Data Repository (TDR) Library
+# GPO deliverables API
 
-> This library contains our code for accessing TDR API Endpoints and performing operations involving snapshots. You can find more information [here](tdr_snapshot_examples/tdr.md)
+> This contains our code for accessing GPO's deliverable endpoints and performing operations involving snapshots. You can find more information [here](deliverables_examples/deliverables.md)
 
 # End to End Example
 
