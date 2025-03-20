@@ -57,7 +57,7 @@ def retrieve_gpo_orders(email: str, project_key, session):
         "User-Agent": "bcl-example",
     }
     res = local_session.get(
-        f"https://gpo-staging.broadinstitute.org/api/order?project_key={project_key}",
+        f"https://gpo-staging.broadinstitute.org/api/orders?start_date=2025-01-09 00:00:00.000",
         headers=headers,
     )
     res.raise_for_status()
@@ -69,5 +69,6 @@ if __name__ == "__main__":
     order_key = "FILL_IN"
     submitter_email = "FILL_IN"
 
-    response = retrieve_gpo_order(email=submitter_email, order_key=order_key)
-    print(response.json())
+    response = retrieve_gpo_orders(email=submitter_email)
+    res = response.json()
+    print(len(res["items"]))
