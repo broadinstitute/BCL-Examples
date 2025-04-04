@@ -122,9 +122,8 @@ source .venv/bin/activate
 
 # Upgrade pip and pip-tools
 pip install --upgrade pip
-pip install --upgrade pip-tools
 
 # Install all dependencies
-./pip-install.sh
+pip install requirements.txt requirements-google.txt
 ```
 

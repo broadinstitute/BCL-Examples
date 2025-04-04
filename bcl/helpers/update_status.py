@@ -1,9 +1,11 @@
 # Use dev endpoint to update sample status
+from bcl.auth.obtain_session import obtain_session
+from bcl.constants import STAGING_SERVER
 
-from common.obtain_token import obtain_session
 
-
-def update_sample_status(order_key, sample_ids: list[str], test_code, email, status, session=None):
+def update_sample_status(
+    order_key, sample_ids: list[str], test_code, email, status, session=None
+):
     """
      This function updates the statuses of samples in gpo utlilizing the dev endpoint.
 
@@ -19,7 +21,6 @@ def update_sample_status(order_key, sample_ids: list[str], test_code, email, sta
     Returns:
         The gpo response for updating samples which contains an array of the changes.
     """
-    global headers, res
     payload = {
         "sidr_order_key": order_key,
         "sidr_sample_ids": sample_ids,
@@ -28,7 +29,7 @@ def update_sample_status(order_key, sample_ids: list[str], test_code, email, sta
         "extras": {"status": status, "reason": "FILL_IN"},
         "action": "change_status",
     }
-    local_session = obtain_session() if not session else session
+    local_session = obtain_session(STAGING_SERVER) if not session else session
     submitter_email = email
     headers = {
         "Actor-Email": submitter_email,
@@ -37,7 +38,7 @@ def update_sample_status(order_key, sample_ids: list[str], test_code, email, sta
         "User-Agent": "bcl-example",
     }
     res = local_session.patch(
-        f"https://gpo-staging.broadinstitute.org/dev/sample",
+        "https://gpo-staging.broadinstitute.org/dev/sample",
         json=payload,
         headers=headers,
     )
@@ -47,6 +48,11 @@ def update_sample_status(order_key, sample_ids: list[str], test_code, email, sta
 
 if __name__ == "__main__":
     # Payload to fill in
-    response = update_sample_status(order_key="FILL_IN", sample_ids=["FILL_IN"], test_code="FILL_IN", email="FILL_IN",
-                                    status="[FILL_IN]")
+    response = update_sample_status(
+        order_key="FILL_IN",
+        sample_ids=["FILL_IN"],
+        test_code="FILL_IN",
+        email="FILL_IN",
+        status="[FILL_IN]",
+    )
     print(response.json())

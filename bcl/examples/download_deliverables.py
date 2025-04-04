@@ -1,30 +1,19 @@
 # script that accepts a snapshot id and a file-mapping dictionary as command-line arguments
-import itertools
 import argparse
+import datetime
+import hashlib
 import json
-import urllib.request
 import logging
 import os
-
-import google.auth
-import google.auth.transport.requests
-import google.auth.impersonated_credentials
-import google.oauth2.id_token
-
+import urllib.request
 from dataclasses import dataclass
-from typing import List
-from uuid import UUID
 from enum import Enum
 from pathlib import Path
-import hashlib
-import datetime
+from typing import List
+from uuid import UUID
 
-staging_server = "https://gpo-staging.broadinstitute.org"
-prod_server = "https://gpo.broadinstitute.org"
-
-# Script for retrieving deliverable files from a GPO order or Snapshot.
-# This uses Google Application Default Credentials to handle authentication (See https://google.aip.dev/auth/4110)
-# For example, if the GOOGLE_APPLICATION_CREDENTIALS environment variable is set, the script will look for a credentials file there.
+from bcl.auth.obtain_session import obtain_session
+from bcl.constants import PROD_SERVER, STAGING_SERVER
 
 
 def parse_args():
@@ -71,34 +60,11 @@ def parse_args():
     return parser.parse_args()
 
 
-def obtain_session(target_audience):
-    api_headers = {
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-        "User-Agent": "bcl-example",
-    }
-
-    # Create and configure AuthorizedSession using ambient credentials (See https://google.aip.dev/auth/4110)
-    credentials, _ = google.auth.default()
-    if isinstance(credentials, google.auth.impersonated_credentials.Credentials):
-        logging.debug("Using Application Default Credentials")
-        credentials = google.auth.impersonated_credentials.IDTokenCredentials(
-            credentials, target_audience=target_audience
-        )
-    else:
-        credentials = google.oauth2.id_token.fetch_id_token_credentials(
-            target_audience, google.auth.transport.requests.Request()
-        )
-    session = google.auth.transport.requests.AuthorizedSession(credentials)
-    session.headers = api_headers
-    return session
-
-
 @dataclass
 class DeliverableSpec:
     name: str
     url: str
-    md5_url: str = None
+    md5_url: str | None = None
 
 
 # returns a list of dictionaries, each with the name and url of the deliverable
@@ -158,9 +124,9 @@ class DownloadResult:
     url: str
     status: str
     path: str
-    md5: str = None
+    md5: str | None = None
     date: str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    error: str = None  # time the download finished or errored
+    error: str | None = None  # time the download finished or errored
 
 
 def fetch_with_redirect(url, file_name, session):
@@ -250,7 +216,7 @@ def main():
 
     file_mapping = json.loads(args.file_mapping or "{}")
 
-    server = prod_server if args.p else staging_server
+    server = PROD_SERVER if args.p else STAGING_SERVER
     session = obtain_session(server)
 
     id_to_fetch = args.id_to_fetch

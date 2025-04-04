@@ -1,31 +1,64 @@
 # BCL-Examples
 
-Storehouse of Scripts to share with our API customers to assist with their interactions with BCL Orders
+Examples scripts for organizations looking to place orders, monitor order status, and retrieve results from BCL Orders.
 
-# Setting up your environment
+# Environment Setup
 
-> This repository uses python. You can find instructions on installing python and setting up a virtual environment [here](docs/PYTHON.md)
+This repository uses Python and was developed using Python 3.11. These scripts should work with any recent version of Python 3. Dependencies for this repo are outlined in [requirements.txt](requirements.txt)
 
-> There are also a few dependencies that need to be installed with pip. You can find instruction on installing those dependencies [here](docs/PIP.md)
+* Instructions for installing Python and setting up a Virtual Environment can be found [here](docs/PYTHON.md)
+* Dependencies can be installed using `pip install -r requirements.txt -r requirements-google.txt`
 
-# Token Generation
+# Directory
 
-> In [`common/obtain_token.py`](common/obtain_token.py) we generate our valid token and session for all the other requests we make in this library. We have 3 ways to generate a valid authorized session.
+* [bcl/examples](bcl/examples): Example scripts showing how a customer integration might work with GPO
+* [bcl/helpers](bcl/helpers): Helper scripts for setting up new integrations with GPO
+* [bcl/auth](bcl/auth): Components for implementing authentication described below
 
-- Service Account Impersonation: Uses the email of a service account to generate the credentials.
-- Credentials File: Uses a saved credentials file on the current system to generate the credentials.
-- Google Compute: Uses the Google Compute Engine to generate the credentials.
+# Running Examples
 
-> By default the file uses Service Account Impersonation, but this can be changed to fit your needs.
+These examples rely on this repo being in PYTHONPATH. This can be accomplished by running the examples directly:
 
-# BCL Orders Library
+```
+./bcl/examples/get_orders.py -d
+```
 
-> This library contains code for accessing BCL Orders API endpoints and performing some operations such as creating an order. You can find more information [here](gpo_examples/gpo.md)
+or manually:
 
-# Terra Data Repository (TDR) Library
+```
+env PYTHONPATH=$PWD python ./bcl/examples/get_orders.py -d
+```
 
-> This library contains our code for accessing TDR API Endpoints and performing operations involving snapshots. You can find more information [here](tdr_snapshot_examples/tdr.md)
 
-# End to End Example
+# Authentication
 
-The files [`extract_files_in_tdr_snapshot_from_snapshot_id.py`](extract_files_in_tdr_snapshot_from_snapshot_id.py) and [`place_order_and_manipulate_status.py`](place_order_and_manipulate_status.py) are examples of using the libraries end to end from placing and retrieving data from GPO to modifying statuses and extracting results from TDR.
+BCL Orders supports several methods of authenticating.
+Currently, these examples are created using Google Cloud Platform (GCP) IAM as an Authentication Provider to authenticate a GCP Service Account.
+Please contact support if you would like to use a different authentication system.
+
+## GCP Service Account Authentication
+
+There are 3 options that can be used to configure these scripts to authenticate with GPO using Google Cloud Platform Service Accounts.
+These scripts use the standards outlined in https://google.aip.dev/auth/4110 to accept credentials
+
+### GCP Service Account Keys
+For fixed installations, it might be desirable to create a service account key file that will allow scripts to authenticate with GPO indefinitely.
+Follow these steps to authenticate using Service Account Keys:
+
+1) Create and store a JSON key for a GCP Service Account following the instructions here: https://cloud.google.com/iam/docs/keys-create-delete
+2) Set the GOOGLE_APPLICATION_CREDENTIALS environment variable to the location on the file system of this key. IE: `GOOGLE_APPLICATION_CREDENTIALS=/home/my-user/my-service-account-key.json`
+3) Research security concerns associated with Service Account Keys and ensure key is stored securely and rotated based on your organizations information security needs. See https://cloud.google.com/iam/docs/best-practices-for-managing-service-account-keys for first steps.
+
+### GCP Service Account Impersonation
+For running scripts locally, it is possible to impersonate a service account using the `gcloud` tool's Application Default Credentials.
+This method relies on the current human user having permission to impersonate the service account.
+Follow these steps to authenticate using GCP Service Account Impersonation:
+
+1) Install and configure `gcloud`: https://cloud.google.com/sdk/docs/install
+2) Generate Application Default Credentials using Impersonation: `gcloud auth application-default login --impersonate-service-account my-service-account@my-project.iam.gserviceaccount.com` (See https://cloud.google.com/docs/authentication/set-up-adc-local-dev-environment#sa-impersonation)
+3) Set GOOGLE_APPLICATION_CREDENTIALS to the path to your gcloud application default credentials: `GOOGLE_APPLICATION_CREDENTIALS=$HOME/.config/gcloud/application_default_credentials.json` (See https://cloud.google.com/docs/authentication/application-default-credentials#personal)
+
+### GCP Compute Engine Metadata Server
+
+For applications running in Google Compute Engine under a GCP Service Account, no environment variable is necessary.
+The Google client library used in these scripts will automatically use the Compute Engine Metadata Server to make authenticated requests to BCL Orders' API
