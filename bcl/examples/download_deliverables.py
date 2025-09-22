@@ -5,7 +5,6 @@ import hashlib
 import json
 import logging
 import os
-import urllib.request
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
@@ -131,12 +130,14 @@ class DownloadResult:
 
 def fetch_with_redirect(url, file_name, session):
     logging.info(f"Downloading {file_name} from {url}")
-    response = session.get(url)
-    response.raise_for_status()
-    signed_url = response.url
-    # make the containing directory if it doesn't exist -- in case it was specified in the map
-    Path(os.path.dirname(file_name)).mkdir(parents=True, exist_ok=True)
-    urllib.request.urlretrieve(signed_url, file_name)
+
+    # Download to file:
+    with session.get(url, stream=True) as r:
+        r.raise_for_status()
+        Path(os.path.dirname(file_name)).mkdir(parents=True, exist_ok=True)
+        with open(file_name, "wb") as f:
+            for chunk in r.iter_content(chunk_size=1024):
+                f.write(chunk)
     logging.info(f"Downloaded {file_name} from {url} - success")
 
 

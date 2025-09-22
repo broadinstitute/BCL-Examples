@@ -30,7 +30,7 @@ pycparser==2.22
     # via cffi
 pyopenssl==25.0.0
     # via google-oauth
-requests==2.32.3
+requests==2.32.4
     # via
     #   BCL-Examples (pyproject.toml)
     #   google-oauth
@@ -40,5 +40,5 @@ six==1.17.0
     # via google-oauth
 typing-extensions==4.12.2
     # via pyopenssl
-urllib3==2.3.0
+urllib3==2.5.0
     # via requests
