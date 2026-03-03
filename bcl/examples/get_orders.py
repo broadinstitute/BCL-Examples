@@ -49,7 +49,7 @@ if __name__ == "__main__":
     server = PROD_SERVER if args.p else STAGING_SERVER
     session = obtain_session(server)
 
-    search_criteria = {"page": ">"}  # ">" represents first page of results
+    search_criteria = {"page": "0"}  # 0 represents first page of results
     if args.d:
         start_date = (
             (datetime.datetime.now(datetime.UTC) - datetime.timedelta(hours=25))

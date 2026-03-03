@@ -165,7 +165,8 @@ def download_deliverable(
         if deliverable_spec.md5_url:
             fetch_with_redirect(deliverable_spec.md5_url, file_name + ".md5", session)
             file_md5 = md5(file_name)
-            expected_md5 = open(file_name + ".md5", "r").read().strip()
+            # only read the first 32 bytes since some md5 libraries append the filename
+            expected_md5 = open(file_name + ".md5", "r").read(32).strip()
             if file_md5 == expected_md5:
                 logging.info(f"MD5 check passed for {file_name} - {file_md5}")
             else:
